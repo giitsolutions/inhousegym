@@ -1841,10 +1841,10 @@ function About(){
 
 function Contact(){
   const rows = [
-    ["phone", "PHONE", "+91 XXXXX XXXXX", null],
-    ["pin", "ADDRESS", "Your business address, India", null],
+    ["phone", "PHONE", "9871482091", null],
+    ["pin", "ADDRESS", "Gargs Importers and Traders LLP,Style Plaza, Jharsa Road, Sector-15, Part-1, Gurgaon (Haryana) -122001,India", null],
     ["globe", "WEBSITE", "www.yourwebsite.com", null],
-    ["mail", "EMAIL", "support@inhousegym.com", "mailto:support@inhousegym.com"]
+    ["mail", "EMAIL", "inhousegym@gmail.com", "mailto:support@inhousegym.com"]
   ];
   return <main className="contact-page">
     <section className="contact-main">
