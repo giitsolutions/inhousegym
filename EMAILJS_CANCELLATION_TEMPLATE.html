@@ -1,0 +1,30 @@
+<!doctype html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;background:#f5f5f5;font-family:Arial,Helvetica,sans-serif;color:#2b2b2b;">
+  <div style="max-width:740px;margin:0 auto;background:#fff;">
+    <div style="background:#f51b25;color:#fff;padding:28px 25px 24px;border-radius:10px 10px 0 0;">
+      <div style="font-size:25px;font-weight:700;line-height:1.2;">🏋️ InHouseGym</div>
+      <div style="font-size:16px;margin-top:16px;">{{email_message}}</div>
+    </div>
+
+    <div style="padding:30px 30px 10px;">
+      <div style="background:#fff5f5;border-left:5px solid #f51b25;border-radius:10px;padding:17px 18px;margin-bottom:25px;">
+        <div style="font-size:18px;font-weight:700;color:#292929;">❌ {{email_title}}</div>
+        <div style="font-size:15px;margin-top:7px;color:#444;">Order #{{order}} has been cancelled by the customer.</div>
+      </div>
+
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:16px;">
+        <tr><td style="padding:14px 12px;color:#666;background:#fff;">Customer</td><td align="right" style="padding:14px 12px;font-weight:700;background:#fff;">{{customer_name}}</td></tr>
+        <tr><td style="padding:14px 12px;color:#666;background:#f8f8f8;">Phone</td><td align="right" style="padding:14px 12px;font-weight:700;background:#f8f8f8;">{{phone}}</td></tr>
+        <tr><td style="padding:14px 12px;color:#666;background:#fff;">Equipment</td><td align="right" style="padding:14px 12px;font-weight:700;background:#fff;">{{product}}</td></tr>
+        <tr><td style="padding:14px 12px;color:#666;background:#f8f8f8;">Rental Duration</td><td align="right" style="padding:14px 12px;font-weight:700;background:#f8f8f8;">{{duration}}</td></tr>
+        <tr><td style="padding:14px 12px;color:#666;background:#fff;">Amount</td><td align="right" style="padding:14px 12px;font-weight:700;color:#f51b25;background:#fff;font-size:18px;">₹{{amount}}</td></tr>
+        <tr><td style="padding:14px 12px;color:#666;background:#f8f8f8;">Delivery Address</td><td align="right" style="padding:14px 12px;font-weight:700;background:#f8f8f8;">{{address}}</td></tr>
+      </table>
+
+      <div style="border-top:1px solid #ddd;text-align:center;padding:24px 0 20px;margin-top:20px;color:#555;">
+        Thank you,<br><strong style="color:#222;">InHouseGym Team</strong>
+      </div>
+    </div>
+  </div>
+</body></html>
