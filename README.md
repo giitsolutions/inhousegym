@@ -1,4 +1,3 @@
-# INHOUSEGYM — Gym Equipment Rental Platform
 <div align="center">
   <img src="public/assets/inhousegym-logo.png" alt="INHOUSEGYM" width="280" />
 </div>
