@@ -1,4 +1,4 @@
-# InHouseGym — Design 4 Admin Dashboard
+# InHouseGym — Admin Dashboard
 
 This version keeps the customer website, 3 equipment categories, treadmill weight-capacity filtering, product detail pages, cart, login, checkout and rental flow, and replaces the admin area with a separate minimal Design 4 admin interface.
 
