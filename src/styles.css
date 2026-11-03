@@ -7650,4 +7650,39 @@ html, body, #root {
 .how-simple-label{font-size:10px;letter-spacing:1.7px;font-weight:700;color:var(--berry)}
 .how-simple-step h3{margin:4px 0 4px;font:600 24px 'Fraunces',serif;color:#151515}
 .how-simple-step p{margin:0;font-size:13px;color:#777;line-height:1.6}
+/* ===== MY RENTALS MOBILE FIX — sabse end me rakho ===== */
+@media(max-width:760px){
+  .profile-layout{grid-template-columns:1fr !important;}
+  .profile-side{display:none !important;}
+  .rentals-main{min-width:0;width:100%;}
+  .rental-card{flex-wrap:wrap;width:100%;box-sizing:border-box;}
+  .rental-card h3{font-size:20px;}
+  .rental-card-actions{width:100% !important;flex-direction:row !important;margin-left:0 !important;}
+  .rental-card-actions button{flex:1;}
+  .rental-card .outline-btn{margin-left:0 !important;}
+}
+.checkout-card{max-height:92dvh !important;overflow-y:auto !important;-webkit-overflow-scrolling:touch !important;}
+.modal-backdrop{overflow-y:auto !important;}
+/* Product photo frame-fit */
+.product-img img{width:100% !important;height:100% !important;object-fit:contain !important;padding:6px}
+.detail-image img{width:100% !important;height:100% !important;object-fit:contain !important;padding:6px}
+/* GALLERY HOVER ZOOM — badi photo par mouse le jaane par zoom */
+.detail-page .detail-image{overflow:hidden}
+.detail-page .detail-image img{transition:transform .35s ease;cursor:zoom-in}
+.detail-page .detail-image img:hover{transform:scale(1.7)}
+/* Order confirmation box (order place hone ke baad) */
+.success-card .success-whatsapp{color:#15803d;font-weight:600;font-size:11px;line-height:1.6}
+.success-card .success-continue{display:block;margin:13px auto 0;background:none;border:none;color:var(--berry);font-weight:700;font-size:11px;cursor:pointer;text-decoration:underline}
+/* Zoom follows the mouse — whichever part of the image the mouse is over, that part zooms in */
+
+.detail-image img{transform-origin:var(--zx,50%) var(--zy,50%)}
+/* Order Confirmed — party popper + confetti animation */
+.success-card .confetti{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.success-card .confetti i{position:absolute;top:-14px;display:block;opacity:0;animation-name:confettiFall;animation-timing-function:ease-in;animation-fill-mode:forwards}
+@keyframes confettiFall{0%{transform:translate3d(0,-10px,0) rotate(0deg);opacity:1}85%{opacity:1}100%{transform:translate3d(var(--sway,0px),430px,0) rotate(720deg);opacity:0}}
+.success-card .success-icon.party{animation:partyPop .6s ease}
+@keyframes partyPop{0%{transform:scale(.3) rotate(-20deg)}60%{transform:scale(1.25) rotate(8deg)}100%{transform:scale(1) rotate(0deg)}}
+
+
+
 

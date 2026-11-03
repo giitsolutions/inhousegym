@@ -716,7 +716,7 @@ useEffect(() => {
     </div>
   </header>;
 }
-function ProductCard({p,onView,onAdd,offer}) {
+function ProductCard({p,onView,onAdd,offer,viewOnly}) {
   const open=()=>onView(p);
   const rentalBase=Number(p.price3Month || p.price*3);
   const offerApplies=offer?.enabled && (offer.category==="All Equipment" || offer.category===p.category);
@@ -745,7 +745,7 @@ function ProductCard({p,onView,onAdd,offer}) {
         )}
         <span className="rating">★ {p.rating}</span>
       </div>
-      <button className="dark-btn small" onClick={e=>{e.stopPropagation();onAdd({...p,rentalPrice},3,1)}}>Add to Cart</button>
+      {viewOnly ? <button className="dark-btn small" onClick={e=>{e.stopPropagation();open()}}>View Details</button> : <button className="dark-btn small" onClick={e=>{e.stopPropagation();onAdd({...p,rentalPrice},3,1)}}>Add to Cart</button>}
     </div>
   </article>;
 }
@@ -917,7 +917,7 @@ function Home({setPage,onView,onAdd,onCategory,products,offer}) {
         <button className="home-v2-viewall" onClick={()=>onCategory('All Equipment')}>View all <Icon name="arrow" size={15}/></button>
       </div>
       <div className="home-v2-products">
-        {popular.map(p=><ProductCard key={p.id} p={p} onView={onView} onAdd={onAdd} offer={offer}/>)}
+        {popular.map(p=><ProductCard key={p.id} p={p} onView={onView} onAdd={onAdd} offer={offer} viewOnly/>)}
       </div>
     </section>
 
@@ -1069,28 +1069,16 @@ function ProductDetail({p,onBack,onAdd,onRentNow,offer}) {
   const [qty,setQty] = useState(1);
   const [activeTab,setActiveTab] = useState("description");
   const [activeGalleryImage,setActiveGalleryImage] = useState(p.image);
-  // Sirf product ki apni ek hi image dikhegi — dusre equipments ki
-  // images gallery me nahi ayengi.
-  const galleryImages = [p.image].filter(Boolean);
+  // Pehli photo = main Image URL wali. Uske baad admin ne Gallery Images
+// me jitni extra photos di hain, wo sab side thumbnails me ayengi.
+const galleryImages = [...new Set([p.image, ...(Array.isArray(p.images) ? p.images : [])].filter(Boolean))];
+
 
   useEffect(() => {
     setActiveGalleryImage(p.image);
   }, [p.id, p.image]);
 
-  // Automatically advance the gallery every 3 seconds for every equipment.
-  useEffect(() => {
-    if (galleryImages.length < 2) return undefined;
-
-    const slideshowTimer = window.setInterval(() => {
-      setActiveGalleryImage(currentImage => {
-        const currentIndex = galleryImages.indexOf(currentImage);
-        const nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % galleryImages.length;
-        return galleryImages[nextIndex];
-      });
-    }, 3000);
-
-    return () => window.clearInterval(slideshowTimer);
-  }, [p.id, p.image]);
+  
 
   // Prices entered by the admin are the source for the 3-month / 6-month options.
   // Older products that do not have these fields fall back to the existing base price.
@@ -1135,14 +1123,16 @@ function ProductDetail({p,onBack,onAdd,onRentNow,offer}) {
           {galleryImages.length > 1 && (<div className="detail-thumbs" aria-label="Product images">
             {galleryImages.map((src, index) => (
               <button type="button" key={src} className={`detail-thumb ${activeGalleryImage === src ? "active" : ""}`}
-                onClick={() => setActiveGalleryImage(src)} aria-label={`View product image ${index + 1}`}>
+                onClick={() => setActiveGalleryImage(src)} onMouseEnter={() => setActiveGalleryImage(src)} aria-label={`View product image ${index + 1}`}>
+
                 <img src={src} alt={`${p.name} view ${index + 1}`} />
               </button>
             ))}
           </div>)}
           <div className="detail-image-wrap">
             <span className="detail-popular-badge">Popular</span>
-            <div className="detail-image">
+            <div className="detail-image" onMouseMove={e=>{const r=e.currentTarget.getBoundingClientRect();e.currentTarget.style.setProperty("--zx",(((e.clientX-r.left)/r.width)*100)+"%");e.currentTarget.style.setProperty("--zy",(((e.clientY-r.top)/r.height)*100)+"%");}}>
+
               <img src={activeGalleryImage || p.image} alt={p.name}/>
             </div>
             {galleryImages.length > 1 && <div className="gallery-dots" aria-label="Image selection">
@@ -1451,6 +1441,8 @@ function Cart({items,setItems,onCheckout,onClose}) {
             <div>🛒</div>
             <h3>Your cart is empty</h3>
             <p>Add some equipment to start your rental.</p>
+            <button className="outline-btn" style={{width:"100%",padding:"12px",marginTop:"16px"}} onClick={onClose}>← Back</button>
+
           </div>
 
         :
@@ -1528,13 +1520,9 @@ function Cart({items,setItems,onCheckout,onClose}) {
                 <b>{money(total)}</b>
               </div>
 
-              <button
-                className="dark-btn full"
-                onClick={onCheckout}
-              >
-                Proceed to Checkout
-                <Icon name="arrow" size={17}/>
-              </button>
+            <button className="outline-btn" style={{width:"100%",padding:"12px",marginBottom:"10px"}} onClick={onClose}>← Back</button>
+<button className="dark-btn full" onClick={onCheckout}>Proceed to Checkout <Icon name="arrow" size={17}/></button>
+
 
             </div>
           </>
@@ -1680,6 +1668,8 @@ function Auth({mode,setMode,onClose,onLogin}) {
     <button className="dark-btn full" type="submit">{mode==="login"?"Login":"Create Account"} <Icon name="arrow" size={16}/></button>
     </form>
     <div className="auth-switch">{mode==="login"?"Don't have an account?":"Already have an account?"} <button type="button" onClick={()=>{setError("");setMode(mode==="login"?"signup":"login")}}>{mode==="login"?"Sign Up":"Login"}</button></div>
+    <button type="button" className="outline-btn" style={{width:"100%",padding:"12px",marginTop:"12px"}} onClick={onClose}>← Back</button>
+
     <div className="demo-note">Your account is saved on the server, so you can log in from any device.</div>
   </div></div>;
 }
@@ -1704,63 +1694,39 @@ function Checkout({items,onClose,onSuccess}) {
     reader.readAsDataURL(file);
   };
 
-  if(step===3) return <div className="modal-backdrop"><div className="success-card"><div className="success-icon">✓</div><h2>Rental Confirmed!</h2><p>Your equipment rental has been placed successfully.</p><b>Order #FR{Math.floor(100000+Math.random()*899999)}</b><button className="dark-btn full" onClick={()=>onSuccess(form)}>View My Rentals</button></div></div>;
+
 
   return <div className="modal-backdrop"><div className="checkout-card">
-    <div className="checkout-head"><div><span className="section-kicker">FITRENT CHECKOUT</span><h2>{step===1?"Shipping Details":"Payment Method"}</h2></div><button className="icon-btn" onClick={onClose}><Icon name="close"/></button></div>
+    <div className="checkout-head"><div><span className="section-kicker">Inhousegym checkout</span><h2>Shipping Details</h2>
+</div><button className="icon-btn" onClick={onClose}><Icon name="close"/></button></div>
 
-    <div className="steps"><span className="done">1 <small>Shipping</small></span><i/><span className={step>=2?"done":""}>2 <small>Payment</small></span><i/><span>3 <small>Confirmation</small></span></div>
+    
 
-    {step===1 ? (
-      <div className="form-grid">
-        <label>Full Name *<input value={form.name} onChange={e=>set("name",e.target.value)} placeholder="Your full name" required/></label>
-        <label>Phone Number *<input value={form.phone} onChange={e=>set("phone",e.target.value.replace(/\D/g,"").slice(0,10))} placeholder="10 digit mobile number" inputMode="tel" maxLength={10} required/></label>
+    <div className="form-grid">
+  <label>Full Name *<input value={form.name} onChange={e=>set("name",e.target.value)} placeholder="Your full name" required/></label>
+  <label>Phone Number *<input value={form.phone} onChange={e=>set("phone",e.target.value.replace(/\D/g,"").slice(0,10))} placeholder="10 digit mobile number" inputMode="tel" maxLength={10} required/></label>
+  <label className="wide">House Address *<textarea value={form.address} onChange={e=>set("address",e.target.value)} placeholder="House no. / street / locality" required/></label>
+  
+</div>
+<p style={{fontSize:"12px",lineHeight:"1.6",color:"#687773",background:"#fdf6ec",border:"1px solid rgba(15,61,58,.12)",padding:"10px 12px",marginTop:"14px"}}><b>Note:</b> No documents are required right now. We will collect the required documents from you on WhatsApp after your order is placed.</p>
 
-        <label className="wide">House Address *<textarea value={form.address} onChange={e=>set("address",e.target.value)} placeholder="House no. / street / locality" required/></label>
-        <label>City<input value={form.city} onChange={e=>set("city",e.target.value)} placeholder="New Delhi" required/></label>
-        <label>PIN Code *<input value={form.pin} onChange={e=>set("pin",e.target.value.replace(/\D/g,"").slice(0,6))} placeholder="110016" maxLength={6} inputMode="numeric" required/></label>
-
-        <label>Aadhaar Number *<input value={form.aadhaar} onChange={e=>set("aadhaar",e.target.value.replace(/\D/g,""))} placeholder="12 digit Aadhaar number" maxLength={12} inputMode="numeric" required/>
-          <span className="document-upload-label">Upload Aadhaar Card * <small>(PDF or image, max 2 MB)</small></span>
-          <input className="document-file-input" type="file" accept="application/pdf,image/*" onChange={e=>readDocument("aadhaarFile","aadhaarFile","aadhaarFileName",e.target.files?.[0])} required/>
-          {form.aadhaarFileName&&<small className="document-file-name">✓ {form.aadhaarFileName}</small>}
-        </label>
-        <label>PAN Number (Optional)<input value={form.pan} onChange={e=>set("pan",e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,10))} placeholder="ABCDE1234F" maxLength={10}/>
-
-          <span className="document-upload-label">Upload PAN Card (Optional) <small>(PDF or image, max 2 MB)</small></span>
-          <input className="document-file-input" type="file" accept="application/pdf,image/*" onChange={e=>readDocument("panFile","panFile","panFileName",e.target.files?.[0])}/>
-          {form.panFileName&&<small className="document-file-name">✓ {form.panFileName}</small>}
-        </label>
-      </div>
-    ) : (
-      <div className="payment-single">
-        <div className="payment-cod-card">
-          <div className="payment-cod-icon">▣</div>
-          <div>
-            <b>Cash on Delivery</b>
-            <p>Pay at delivery. No online payment required.</p>
-          </div>
-          <span className="payment-cod-check">✓</span>
-        </div>
-      </div>
-    )}
 
     <div className="checkout-bottom">
       <div className="checkout-bottom-left">
-        <div><span>Total Amount</span><strong>{money(total)}</strong></div>
-        {step===2 && <button type="button" className="back-checkout-btn" onClick={()=>setStep(1)}>← Back to Shipping</button>}
-      </div>
-      <button className="dark-btn" onClick={()=>{
-        if(step===1){
-         if(!form.name.trim()||!form.phone||!form.address.trim()||!form.city.trim()||!form.pin||!form.aadhaar||!form.aadhaarFile){alert("Please fill all shipping details and upload your Aadhaar document.");return;}
-         if(!/^[6-9]\d{9}$/.test(form.phone)){alert("Please enter a valid 10 digit mobile number.");return;}
-         if(!/^\d{6}$/.test(form.pin)){alert("Please enter a valid 6 digit PIN code.");return;}
-         if(!/^\d{12}$/.test(form.aadhaar)){alert("Please enter a valid 12 digit Aadhaar number.");return;}
-         if(form.pan&&!/^[A-Z]{5}\d{4}[A-Z]$/.test(form.pan)){alert("Please enter a valid PAN number.");return;}
+        <div style={{display:"flex",alignItems:"baseline",gap:"10px"}}><span style={{color:"#222"}}>Total Amount (Including GST)</span><strong style={{color:"#16a34a"}}>{money(total)}</strong></div>
 
-          setStep(2);
-        } else setStep(3);
-      }}>{step===1?"Continue to Payment":"Place Rental Order"} <Icon name="arrow" size={17}/></button>
+        <button type="button" className="back-checkout-btn" onClick={onClose}>← Back</button>
+
+
+    </div>
+      <button className="dark-btn" onClick={()=>{
+  if(!form.name.trim()||!form.phone||!form.address.trim()){alert("Please fill all the details.");return;}
+
+  if(!/^[6-9]\d{9}$/.test(form.phone)){alert("Please enter a valid 10 digit mobile number.");return;}
+
+  onSuccess(form);
+}}>Confirm Order (Cash on Delivery) <Icon name="arrow" size={17}/></button>
+
     </div>
   </div></div>;
 }
@@ -2064,7 +2030,9 @@ function AdminDashboard({
   reviews:"0",
   meta:"",
   image:"",
+  imagesText:"",
   description:"",
+
   popular:false,
   enabled:true
 };
@@ -2144,9 +2112,11 @@ setForm({
   price6Month:p.price6Month ?? "",
   rating:p.rating ?? "4.7",
   reviews:p.reviews ?? "0",
-  popular:p.popular ?? false,
-  enabled:p.enabled !== false
+   popular:p.popular ?? false,
+  enabled:p.enabled !== false,
+  imagesText:Array.isArray(p.images) ? p.images.join("\n") : (p.imagesText || "")
 });
+
 
   setSection("add");
 
@@ -2182,8 +2152,11 @@ treadmillTier:
     : undefined,
 
 popular:Boolean(form.popular),
-enabled:form.enabled !== false
+enabled:form.enabled !== false,
+
+images:(form.imagesText || "").split("\n").map(x=>x.trim()).filter(Boolean)
 };
+
     onSaveProducts(editing?products.map(x=>x.id===editing?item:x):[...products,item]); reset(); setSection("products");
   };
   const remove = (id) => {
@@ -2240,6 +2213,37 @@ enabled:form.enabled !== false
   refreshAdminData(v => v + 1);
 };
   const update=(k,v)=>setForm(f=>({...f,[k]:v}));
+const addGalleryFiles=e=>{
+  const files=[...e.target.files];
+  e.target.value="";
+  files.forEach(file=>{
+    if(!file.type.startsWith("image/")) return;
+    const reader=new FileReader();
+    reader.onload=()=>{
+      const img=new Image();
+      img.onload=()=>{
+        const maxSide=1000;
+        let w=img.naturalWidth||img.width;
+        let h=img.naturalHeight||img.height;
+        if(w>maxSide||h>maxSide){
+          if(w>=h){ h=Math.round(h*maxSide/w); w=maxSide; }
+          else{ w=Math.round(w*maxSide/h); h=maxSide; }
+        }
+        const canvas=document.createElement("canvas");
+        canvas.width=w; canvas.height=h;
+        const ctx=canvas.getContext("2d");
+        ctx.fillStyle="#ffffff";
+        ctx.fillRect(0,0,w,h);
+        ctx.drawImage(img,0,0,w,h);
+        const dataUrl=canvas.toDataURL("image/jpeg",0.78);
+        setForm(f=>({...f,imagesText:(f.imagesText?f.imagesText+"\n":"")+dataUrl}));
+      };
+      img.src=reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+};
+
   const nav=[
     ["dashboard","Dashboard","⌂"],["products","Products","▦"],["add","Add Equipment","＋"],["orders","Orders / Rentals","▤"],["users","Users","♙"],["offers","Festive Offers","🎁"]
   ];
@@ -2395,7 +2399,10 @@ enabled:form.enabled !== false
   />
   <span>Show this equipment to users</span>
 </label>
-<label className="wide">Description<textarea value={form.description} onChange={e=>update("description",e.target.value)} placeholder="Enter product description"/></label></div><div className="admin4-form-actions"><button type="button" className="admin4-cancel" onClick={()=>{reset();setSection("products")}}>Cancel</button><button type="submit" className="admin4-primary">{editing?"Save Changes":"Add Equipment"}</button></div></div><aside className="admin4-preview"><span className="admin4-label">IMAGE PREVIEW</span>{form.image?<img src={form.image} alt="Preview"/>:<div className="admin4-placeholder"><span>＋</span><b>No image selected</b><small>Paste an image URL to preview</small></div>}<div className="admin4-preview-copy"><strong>{form.name||"Product Name"}</strong><span>{form.category} · {form.price?money(Number(form.price)):"₹0"} / day</span>{form.category==="Treadmills"&&form.maxWeight&&<small>Max user weight: {form.maxWeight} kg</small>}</div></aside></form></section>}
+<label className="wide">Gallery Images — Extra Photos(One image URL per line)<textarea value={form.imagesText || ""} onChange={e=>update("imagesText",e.target.value)} rows={4} placeholder="One extra photo URL per line — add as many lines as you want"/></label>
+
+<label className="wide">Description<textarea value={form.description} onChange={e=>update("description",e.target.value)} placeholder="Enter product description"/></label><label className="wide">Add Photos from Device — Phone / Laptop<input type="file" accept="image/*" multiple onChange={addGalleryFiles}/><small>As soon as you select a photo, it will automatically be added to the Gallery box above (resized smaller). You can select multiple photos at once.</small></label>{(form.imagesText||"").split("\n").map(x=>x.trim()).filter(Boolean).length>0&&<div className="wide" style={{display:"flex",gap:"8px",flexWrap:"wrap"}}>{(form.imagesText||"").split("\n").map(x=>x.trim()).filter(Boolean).map((src,i)=><span key={i} style={{position:"relative",display:"inline-block"}}><img src={src} alt="" style={{width:"56px",height:"56px",objectFit:"cover",borderRadius:"8px",border:"1px solid #e5e0da"}}/><button type="button" aria-label="Delete image" title="Delete" onClick={()=>setForm(f=>({...f,imagesText:(f.imagesText||"").split("\n").map(x=>x.trim()).filter(Boolean).filter((_,idx)=>idx!==i).join("\n")}))} style={{position:"absolute",top:"-7px",right:"-7px",width:"20px",height:"20px",borderRadius:"50%",border:"none",background:"#e2272f",color:"#fff",fontSize:"13px",lineHeight:"20px",textAlign:"center",cursor:"pointer",padding:0}}>×</button></span>)}</div>}</div><div className="admin4-form-actions">
+<button type="button" className="admin4-cancel" onClick={()=>{reset();setSection("products")}}>Cancel</button><button type="submit" className="admin4-primary">{editing?"Save Changes":"Add Equipment"}</button></div></div><aside className="admin4-preview"><span className="admin4-label">IMAGE PREVIEW</span>{form.image?<img src={form.image} alt="Preview"/>:<div className="admin4-placeholder"><span>＋</span><b>No image selected</b><small>Paste an image URL to preview</small></div>}<div className="admin4-preview-copy"><strong>{form.name||"Product Name"}</strong><span>{form.category} · {form.price?money(Number(form.price)):"₹0"} / day</span>{form.category==="Treadmills"&&form.maxWeight&&<small>Max user weight: {form.maxWeight} kg</small>}</div></aside></form></section>}
 
       {section==="orders"&&<section className="admin4-card"><div className="admin4-card-head"><div><span className="admin4-label">RENTALS</span><h2>Orders & Rentals</h2></div>{cancelledRentals.length>0&&<span className="admin-cancel-count">{cancelledRentals.length} cancelled</span>}</div>{cancelledRentals.length>0&&<div className="admin-cancel-alert"><strong>Rental cancellation received</strong><span>{cancelledRentals.length} customer rental{cancelledRentals.length>1?"s have":" has"} been cancelled.</span>{latestAdminAlert?.order&&<small>Latest: Order #{latestAdminAlert.order}</small>}</div>}{rentals.length===0?<div className="admin4-empty"><b>No rental records yet</b><span>Customer orders will appear here after checkout.</span></div>:<div className="admin4-table admin-orders-table">{rentals.map((r,i)=><div className={`admin4-table-row admin-order-row ${r.status==='Cancelled'?'admin-cancelled-row':''}`} key={i}><div className="admin4-table-product"><img src={r.image} alt=""/><div><strong>{r.name}</strong><small>Order #{r.order||'—'}</small></div></div><div className="admin-customer-info"><strong>{r.customerName||"Customer"}</strong><small>{r.customerPhone||"Phone not available"}</small><small>{r.customerAddress||"Address not available"}</small><small>{r.customerCity||""} {r.customerPin||""}</small></div><div className="admin-customer-docs">
   <small>Aadhaar: {r.customerAadhaar||"—"}</small>
@@ -2987,7 +2994,8 @@ function AdminAuth({onClose,onLogin}) {
 }
 
 function App(){
-  const [page,setPage]=useState(()=> window.location.pathname==="/admin" ? "admin" : window.location.pathname==="/admin-login" ? "admin-login" : "home"),[shopCategory,setShopCategory]=useState("All Equipment"),[user,setUser]=useState(()=>{const saved=getStorage("fitrent_user",null); const accounts=getStorage("fitrent_users",[]); return saved && accounts.some(a=>(a.email||"").toLowerCase()===(saved.email||"").toLowerCase()) ? saved : null;}),[admin,setAdmin]=useState(()=>getStorage(ADMIN_STORAGE_KEY,null)),[cart,setCart]=useState(()=>getStorage("fitrent_cart",[])),[checkoutItems,setCheckoutItems]=useState([]),[auth,setAuth]=useState(null),[authPurpose,setAuthPurpose]=useState(null),[pendingRent,setPendingRent]=useState(null),[showCart,setShowCart]=useState(false),[checkout,setCheckout]=useState(false),[selected,setSelected]=useState(null),[catalog,setCatalog]=useState(() => {
+  const [page,setPage]=useState(()=> window.location.pathname==="/admin" ? "admin" : window.location.pathname==="/admin-login" ? "admin-login" : "home"),[shopCategory,setShopCategory]=useState("All Equipment"),[user,setUser]=useState(()=>{const saved=getStorage("fitrent_user",null); const accounts=getStorage("fitrent_users",[]); return saved && accounts.some(a=>(a.email||"").toLowerCase()===(saved.email||"").toLowerCase()) ? saved : null;}),[admin,setAdmin]=useState(()=>getStorage(ADMIN_STORAGE_KEY,null)),[cart,setCart]=useState(()=>getStorage("fitrent_cart",[])),[checkoutItems,setCheckoutItems]=useState([]),[auth,setAuth]=useState(null),[authPurpose,setAuthPurpose]=useState(null),[pendingRent,setPendingRent]=useState(null),[showCart,setShowCart]=useState(false),[checkout,setCheckout]=useState(false),[selected,setSelected]=useState(null),[orderDone,setOrderDone]=useState(null)
+,[catalog,setCatalog]=useState(() => {
   const stored = getStorage(PRODUCT_STORAGE_KEY, null);
   const storedProducts = Array.isArray(stored) ? stored : [];
   const deletedIds = new Set(getStorage(DELETED_PRODUCT_STORAGE_KEY, []));
@@ -3067,7 +3075,35 @@ useEffect(()=>{
   );
 }, [catalog]);
 
-useEffect(()=>localStorage.setItem("fitrent_cart",JSON.stringify(cart)),[cart]);
+const cartSyncReady=useRef(false);
+useEffect(()=>{
+  localStorage.setItem("fitrent_cart",JSON.stringify(cart));
+  if(user?.email) localStorage.setItem("fitrent_cart_email",user.email);
+  if(!user?.email || !cartSyncReady.current) return;
+  fetch(`${API_URL}/api/cart`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:user.email,items:cart})}).catch(()=>{});
+},[cart,user?.email]);
+useEffect(()=>{
+  if(!user?.email){cartSyncReady.current=false;return;}
+  cartSyncReady.current=false;
+  (async()=>{
+    try{
+      const res=await fetch(`${API_URL}/api/cart?email=${encodeURIComponent(user.email)}`);
+      const serverCart=await res.json();
+      if(Array.isArray(serverCart)){
+        const cartOwner=localStorage.getItem("fitrent_cart_email");
+        const localCart=(!cartOwner || cartOwner===user.email) ? getStorage("fitrent_cart",[]) : [];
+        const merged=[...serverCart];
+        localCart.forEach(item=>{if(!merged.some(m=>m.key===item.key)) merged.push(item);});
+        setCart(merged);
+        localStorage.setItem("fitrent_cart",JSON.stringify(merged));
+        localStorage.setItem("fitrent_cart_email",user.email);
+        await fetch(`${API_URL}/api/cart`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:user.email,items:merged})}).catch(()=>{});
+      }
+    }catch{}
+    cartSyncReady.current=true;
+  })();
+},[user?.email]);
+
   useEffect(()=>{localStorage.setItem(PRODUCT_STORAGE_KEY,JSON.stringify(catalog))},[catalog]);
   // ---------- Backend sync: load par server se latest data, admin save par server ko bhejo ----------
   const backendReady = useRef(false);
@@ -3196,20 +3232,9 @@ useEffect(()=>localStorage.setItem("fitrent_cart",JSON.stringify(cart)),[cart]);
   setShowCart(true);
 };
 
-  // Rent Now requires a signed-in customer before opening checkout.
   const rentNow=(p,duration=3,quantity=1)=>{
     const key=p.id+"-"+duration;
     const item={...p,key,qty:quantity,duration,rentalMonths:duration,rentalPrice:Number(p.rentalPrice || (duration===3 ? p.price3Month || p.price*3 : p.price6Month || p.price*6))};
-    if(!user){
-      // Guests must authenticate before they can rent. Keep the selected
-      // rental in memory so a successful login continues directly to checkout.
-      setPendingRent(item);
-      setSelected(null);
-      setShowCart(false);
-      setAuthPurpose("rent");
-      setAuth("login");
-      return;
-    }
     setCheckoutItems([item]);
     setSelected(null);
     setShowCart(false);
@@ -3290,7 +3315,7 @@ useEffect(()=>localStorage.setItem("fitrent_cart",JSON.stringify(cart)),[cart]);
   setCart([]);
   setCheckout(false);
   setShowCart(false);
-  setPage("rentals");
+  setOrderDone({number:order.order, item:checkoutItems[0]?.name || "Equipment", count:checkoutItems.length, total:checkoutItems.reduce((sum,i)=>sum + Number(i.rentalPrice||i.price) * (i.qty||1), 0)});
 };
   const goCategory=(category)=>{setSelected(null);setShopCategory(category);setPage("shop")};
   const navigate=(target)=>{setSelected(null);setPage(target)};
@@ -3318,7 +3343,8 @@ page==="home"
   setOffer={setOffer} onLogout={()=>{setAdmin(null);setPage("home");window.history.replaceState({},"","/")}}/>;
     return <AdminLoginPage onLogin={adminLogin} onBack={()=>{setPage("home");window.history.replaceState({},"","/")}}/>;
   }
-  return <><Header page={page} setPage={setPage} onNavigate={navigate} setShopCategory={setShopCategory} cartCount={cart.reduce((s,x)=>s+x.qty,0)} user={user} setShowAuth={(mode)=>{setAuthPurpose(null);setAuth(mode)}} setShowCart={setShowCart} onLogout={()=>{setUser(null);navigate("home")}}/>{page==="home"&&<WhatsAppChat/>}{selected ?
+  return <><Header page={page} setPage={setPage} onNavigate={navigate} setShopCategory={setShopCategory} cartCount={cart.reduce((s,x)=>s+x.qty,0)} user={user} setShowAuth={(mode)=>{setAuthPurpose(null);setAuth(mode)}} setShowCart={setShowCart} onLogout={()=>{setUser(null);navigate("home")}}/>{(page!=="admin"&&page!=="admin-login")&&<WhatsAppChat/>}
+{selected ?
   <ProductDetail
     p={selected}
     onBack={()=>{setSelected(null);setPage("shop")}}
@@ -3326,7 +3352,8 @@ page==="home"
     onRentNow={rentNow}
     offer={offer}
   />
-: content}{showCart&&<Cart items={cart} setItems={setCart} onCheckout={()=>{if(!user){setShowCart(false);setAuthPurpose("checkout");setAuth("login")}else{setCheckoutItems(cart);setShowCart(false);setCheckout(true)}}} onClose={()=>setShowCart(false)}/>} {auth === "admin" ? (
+: content}{showCart&&<Cart items={cart} setItems={setCart} onCheckout={()=>{setCheckoutItems(cart);setShowCart(false);setCheckout(true)}}
+ onClose={()=>setShowCart(false)}/>} {auth === "admin" ? (
   <AdminAuth
     onClose={() => setAuth(null)}
     onLogin={adminLogin}
@@ -3343,7 +3370,12 @@ page==="home"
     onClose={() => setAuth(null)}
     onLogin={login}
   />
-) : null} {checkout&&<Checkout items={checkoutItems} onClose={()=>{setCheckout(false);setCheckoutItems([])}} onSuccess={finish}/>}
+) : null} {checkout&&<Checkout items={checkoutItems} onClose={()=>{setCheckout(false);setCheckoutItems([])}} onSuccess={finish}/>}{orderDone && <div className="modal-backdrop"><div className="success-card"><div className="confetti" aria-hidden="true">{Array.from({length:18}).map((_,i)=><i key={i} style={{left:((i*53)%100)+"%", background:["#e2272f","#f5a623","#16a34a","#2563eb","#eab308"][i%5], width:(6+(i%3)*2)+"px", height:(i%4===0 ? 6+(i%3)*2 : 10+(i%3)*3)+"px", borderRadius:i%3===0 ? "50%" : "2px", animationDelay:((i%8)*0.12)+"s", animationDuration:(2.4+((i*29)%9)/10)+"s", "--sway":(((i*41)%70)-35)+"px"}}/>)}</div><div className="success-icon party">🎉</div>
+<h2>Order Confirmed!</h2><p>Your order for {orderDone.item}{orderDone.count > 1 ? ` and ${orderDone.count - 1} more item(s)` : ""} has been placed successfully.</p><b>Order #{orderDone.number} · {money(orderDone.total)} · Cash on Delivery</b><p className="success-whatsapp">Our team will contact you on WhatsApp shortly to collect the required documents and complete the remaining delivery details. Please keep your documents ready.</p><button className="dark-btn full" onClick={() => { setOrderDone(null); setPage("rentals"); }}>View My Rentals</button><button className="success-continue" onClick={() => setOrderDone(null)}>Continue Shopping</button></div></div>}
+
+
+
+
 {page !== "shop" && (
   <footer className="site-footer">
     <div className="footer-overlay"/>
